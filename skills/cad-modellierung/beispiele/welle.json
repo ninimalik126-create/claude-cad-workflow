@@ -1,0 +1,15 @@
+{
+  "name": "Welle",
+  "werkstoff": "C45",
+  "features": [
+    {"id": "Rohteil", "typ": "drehteil", "ebene": "XZ", "achse": "X",
+     "profil": [{"kontur": [[0, 0], [0, 10], [30, 10], [30, 15], [90, 15], [90, 12.5], [120, 12.5], [120, 0]]}]},
+    {"id": "Einstich", "typ": "drehnut", "ebene": "XZ", "achse": "X",
+     "profil": [{"rechteck": [2, 1.5], "ecke": [60, 13.5]}]},
+    {"id": "Zentrierung", "typ": "bohrung", "ebene": "YZ", "versatz": 0, "mitte": [0, 0], "gewinde": "M8", "tiefe": 20, "gewindetiefe": 16, "richtung": "+"},
+    {"id": "Passfedernut", "typ": "tasche", "ebene": "XY", "versatz": 12.5, "profil": [{"langloch": [22, 8], "mitte": [105, 0]}], "tiefe": 4, "richtung": "-"},
+    {"id": "Endfasen", "typ": "fase", "kanten": [{"d": 20, "in_ebene": {"X": 0}}, {"d": 25, "in_ebene": {"X": 120}}], "laenge": 1},
+    {"id": "Schulterradius", "typ": "verrundung", "kanten": {"kreis": true, "in_ebene": {"X": 30}, "d": 20}, "r": 0.8}
+  ],
+  "soll": {"huelle": [0, -15, -15, 120, 15, 15]}
+}

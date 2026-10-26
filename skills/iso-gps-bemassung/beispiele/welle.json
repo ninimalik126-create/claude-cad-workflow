@@ -1,0 +1,73 @@
+{
+  "blatt": {"format": "A3", "ausrichtung": "quer"},
+  "schriftfeld": {
+    "eigentuemer": "Musterfirma GmbH",
+    "titel": "Antriebswelle",
+    "untertitel": "Lagerung 6005",
+    "zeichnungsnummer": "MF-1001-01",
+    "index": "A",
+    "werkstoff": "C45+N (1.0503)\nRundstahl ⌀36 EN 10060",
+    "massstab": "2:1",
+    "masse": "0,9 kg",
+    "erstellt": "N. N.",
+    "genehmigt": "",
+    "datum": "2026-10-18",
+    "status": "Entwurf",
+    "dokumentart": "Fertigungszeichnung",
+    "blatt": "1/1"
+  },
+  "hinweise": [
+    "Tolerierung ISO 8015",
+    "Allgemeintoleranzen ISO 2768-1 – m",
+    "Werkstückkanten ISO 13715: −0,3",
+    "Nicht bemaßte Fasen 1×45°"
+  ],
+  "oberflaeche_sammel": {"art": "abtragen", "wert": "Ra 3,2", "klammer": ["Ra 0,8"]},
+  "ansichten": [
+    {
+      "name": "Vorderansicht",
+      "ursprung": [50, 120],
+      "massstab": "2:1",
+      "elemente": [
+        {"typ": "linie", "art": "kontur", "geschlossen": true, "p": [
+          [0, 9], [1, 10], [20, 10], [20, 12.5], [40, 12.5], [40, 16], [120, 16], [120, 12.5], [140, 12.5],
+          [140, 8], [159, 8], [160, 7], [160, -7], [159, -8], [140, -8], [140, -12.5], [120, -12.5],
+          [120, -16], [40, -16], [40, -12.5], [20, -12.5], [20, -10], [1, -10], [0, -9]]},
+        {"typ": "linie", "art": "kontur", "p": [[1, 10], [1, -10]]},
+        {"typ": "linie", "art": "kontur", "p": [[20, 10], [20, -10]]},
+        {"typ": "linie", "art": "kontur", "p": [[40, 12.5], [40, -12.5]]},
+        {"typ": "linie", "art": "kontur", "p": [[120, 12.5], [120, -12.5]]},
+        {"typ": "linie", "art": "kontur", "p": [[140, 8], [140, -8]]},
+        {"typ": "linie", "art": "kontur", "p": [[159, 8], [159, -8]]},
+        {"typ": "linie", "art": "kontur", "p": [[144, 8], [144, -8]]},
+        {"typ": "linie", "art": "schmal", "p": [[144, 6.77], [159, 6.77]]},
+        {"typ": "linie", "art": "schmal", "p": [[144, -6.77], [159, -6.77]]},
+        {"typ": "mittellinie", "p": [[0, 0], [160, 0]]}
+      ],
+      "masse": [
+        {"typ": "laenge", "richtung": "v", "p1": [10, -10], "p2": [10, 10], "abstand": 0, "vor": "⌀", "tol": "g6", "textpos": 8},
+        {"typ": "laenge", "richtung": "v", "p1": [30, -12.5], "p2": [30, 12.5], "abstand": 0, "vor": "⌀", "tol": "k6", "textpos": -10},
+        {"typ": "laenge", "richtung": "v", "p1": [80, -16], "p2": [80, 16], "abstand": 0, "vor": "⌀", "textpos": 12},
+        {"typ": "laenge", "richtung": "v", "p1": [130, -12.5], "p2": [130, 12.5], "abstand": 0, "vor": "⌀", "tol": "k6", "textpos": -10},
+        {"typ": "laenge", "richtung": "v", "p1": [150, -8], "p2": [150, 8], "abstand": 0, "text": "M16", "textpos": 8},
+
+        {"typ": "laenge", "richtung": "h", "p1": [0, -9], "p2": [20, -10], "lage": -16, "abstand": -12},
+        {"typ": "laenge", "richtung": "h", "p1": [20, -10], "p2": [40, -12.5], "lage": -16, "abstand": -12},
+        {"typ": "laenge", "richtung": "h", "p1": [120, -12.5], "p2": [140, -12.5], "lage": -16, "abstand": -12},
+        {"typ": "laenge", "richtung": "h", "p1": [144, -8], "p2": [160, -7], "lage": -16, "abstand": -12},
+        {"typ": "laenge", "richtung": "h", "p1": [40, -16], "p2": [120, -16], "lage": -16, "abstand": -20, "tol": "±0,05"},
+        {"typ": "laenge", "richtung": "h", "p1": [0, -9], "p2": [160, -7], "lage": -16, "abstand": -28},
+
+        {"typ": "bezug", "buchstabe": "A", "ziel": [30, 12.5], "richtung": 90},
+        {"typ": "bezug", "buchstabe": "B", "ziel": [130, 12.5], "richtung": 90},
+
+        {"typ": "rahmen", "ziel": [5, 10], "knick": [[0, 12]], "versatz": [6, 20], "zellen": ["lauf", "0,02", "A-B"]},
+        {"typ": "rahmen", "ziel": [24, 12.5], "knick": [[0, 52]], "versatz": [-6, 56], "zellen": ["zylinderform", "0,005"], "oberflaeche": "Ra 0,8"},
+        {"typ": "rahmen", "ziel": [40, 14.5], "knick": [[-5, 0], [-5, 30]], "versatz": [5, 30], "zellen": ["lauf", "0,01", "A-B"]},
+        {"typ": "rahmen", "ziel": [70, 16], "knick": [[0, 10]], "versatz": [6, 16], "zellen": ["lauf", "0,03", "A-B"]},
+        {"typ": "rahmen", "ziel": [120, 14.5], "knick": [[5, 0], [5, 30]], "versatz": [-5, 30], "zellen": ["lauf", "0,01", "A-B"]},
+        {"typ": "rahmen", "ziel": [136, 12.5], "knick": [[0, 52]], "versatz": [6, 56], "zellen": ["zylinderform", "0,005"], "oberflaeche": "Ra 0,8"}
+      ]
+    }
+  ]
+}

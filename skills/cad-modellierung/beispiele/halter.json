@@ -1,0 +1,13 @@
+{
+  "name": "Halter",
+  "werkstoff": "S235",
+  "features": [
+    {"id": "Grundplatte", "typ": "block", "ebene": "XY", "profil": [{"rechteck": [80, 40], "ecke": [0, 0], "r": 5}], "hoehe": 10},
+    {"id": "Befestigung", "typ": "bohrung", "ebene": "XY", "versatz": 10, "mitte": [[12, 20], [68, 20]], "d": 6.6, "durch": true,
+     "flachsenkung": {"d": 11, "tiefe": 6.4}},
+    {"id": "Langloch", "typ": "tasche", "ebene": "XY", "versatz": 10, "profil": [{"langloch": [30, 8], "mitte": [40, 20]}], "durch": true},
+    {"id": "Gewinde", "typ": "bohrung", "ebene": "XZ", "versatz": 0, "mitte": [[40, 5]], "gewinde": "M5", "tiefe": 12, "richtung": "+"},
+    {"id": "Kantenfase", "typ": "fase", "kanten": {"in_ebene": {"Z": 10}, "box": [-1, -1, 9, 81, 41, 11], "nahe": [[40, 0, 10], [40, 40, 10], [0, 20, 10], [80, 20, 10]]}, "laenge": 1}
+  ],
+  "soll": {"huelle": [80, 40, 10]}
+}

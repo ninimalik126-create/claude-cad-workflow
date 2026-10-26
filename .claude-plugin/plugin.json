@@ -1,0 +1,24 @@
+{
+  "name": "claude-cad-workflow",
+  "version": "0.3.0",
+  "description": "CAD-Teile aus Beschreibung, Skizze oder Foto bauen (FreeCAD und SolidWorks, gleicher Bauplan, Selbstprüfung mit Vorschau, Ausgabe nativ/STEP/STL/3MF) und technische Zeichnungen nach ISO GPS bemaßen, tolerieren, prüfen und erzeugen.",
+  "author": {
+    "name": "Malik",
+    "url": "https://github.com/ninimalik126-create"
+  },
+  "keywords": [
+    "cad",
+    "freecad",
+    "solidworks",
+    "3d-druck",
+    "step",
+    "stl",
+    "iso-gps",
+    "technische-zeichnung",
+    "tolerierung",
+    "passungen"
+  ],
+  "homepage": "https://github.com/ninimalik126-create/claude-cad-workflow",
+  "repository": "https://github.com/ninimalik126-create/claude-cad-workflow",
+  "license": "MIT"
+}

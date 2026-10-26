@@ -1,0 +1,15 @@
+{
+  "name": "claude-cad-workflow",
+  "owner": {
+    "name": "Malik",
+    "url": "https://github.com/ninimalik126-create"
+  },
+  "description": "CAD-Teile per Claude bauen (FreeCAD, SolidWorks) und Zeichnungen nach ISO GPS erstellen.",
+  "plugins": [
+    {
+      "name": "claude-cad-workflow",
+      "source": "./",
+      "description": "CAD-Teile bauen (FreeCAD, SolidWorks) und technische Zeichnungen nach ISO GPS erstellen und prüfen."
+    }
+  ]
+}

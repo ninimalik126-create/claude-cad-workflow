@@ -1,0 +1,48 @@
+{
+  "cad": "solidworks",
+  "teil": "Welle.SLDPRT",
+  "blatt": {"format": "A3", "massstab": "2:1"},
+  "eigenschaften": {
+    "Benennung": "Antriebswelle",
+    "Zeichnungsnummer": "MF-1001-01",
+    "Werkstoff": "C45+N (1.0503)",
+    "Masse": "auto",
+    "Gezeichnet": "N. N.",
+    "Datum": "2026-10-18",
+    "Eigentuemer": "Musterfirma GmbH",
+    "Index": "A"
+  },
+  "ansichten": [{"id": "V", "richtung": "vorne", "pos": [200, 175]}],
+  "mittellinien": "auto",
+  "masse": [
+    {"id": "D20", "typ": "durchmesser", "flaeche": "F3", "bei": 10, "tol": "g6"},
+    {"id": "D25a", "typ": "durchmesser", "flaeche": "F5", "bei": 34, "tol": "k6"},
+    {"id": "D32", "typ": "durchmesser", "flaeche": "F7", "bei": 80},
+    {"id": "D25b", "typ": "durchmesser", "flaeche": "F9", "bei": 126, "tol": "k6"},
+    {"id": "M16", "typ": "durchmesser", "flaeche": "F11", "bei": 150, "text": "M16"},
+    {"id": "L1", "typ": "abstand", "von": "F1", "bis": "F4", "lage": "unten", "abstand": 10},
+    {"id": "L2", "typ": "abstand", "von": "F4", "bis": "F6", "lage": "unten", "abstand": 10},
+    {"id": "L3", "typ": "abstand", "von": "F8", "bis": "F10", "lage": "unten", "abstand": 10},
+    {"id": "L80", "typ": "abstand", "von": "F6", "bis": "F8", "lage": "unten", "abstand": 20, "tol": "±0,05"},
+    {"id": "L160", "typ": "abstand", "von": "F1", "bis": "F13", "lage": "unten", "abstand": 30}
+  ],
+  "bezuege": [
+    {"buchstabe": "A", "an": "D25a", "versatz": [0, 12]},
+    {"buchstabe": "B", "an": "D25b", "versatz": [0, 12]}
+  ],
+  "rahmen": [
+    {"zellen": ["lauf", "0,02", "A-B"], "flaeche": "F3", "bei": 6, "versatz": [4, 30]},
+    {"zellen": ["zylinderform", "0,005"], "flaeche": "F5", "bei": 24, "versatz": [-34, 50]},
+    {"zellen": ["lauf", "0,01", "A-B"], "flaeche": "F6", "anteil": 0.9, "versatz": [-4, 40]},
+    {"zellen": ["lauf", "0,03", "A-B"], "flaeche": "F7", "bei": 70, "versatz": [8, 20]},
+    {"zellen": ["lauf", "0,01", "A-B"], "flaeche": "F8", "anteil": 0.9, "versatz": [6, 40]},
+    {"zellen": ["zylinderform", "0,005"], "flaeche": "F9", "bei": 136, "versatz": [8, 50]}
+  ],
+  "oberflaechen": [
+    {"text": "Ra 0,8", "flaeche": "F5", "bei": 28, "versatz": [-8, 62]},
+    {"text": "Ra 0,8", "flaeche": "F9", "bei": 132, "versatz": [14, 62]}
+  ],
+  "hinweise": [
+    {"pos": [25, 72], "text": ["Tolerierung ISO 8015", "Allgemeintoleranzen ISO 2768-1 – m", "Werkstückkanten ISO 13715: −0,3", "Oberflächen ISO 21920-1: Ra 3,2 (Ra 0,8)", "Nicht bemaßte Fasen 1×45°"]}
+  ]
+}

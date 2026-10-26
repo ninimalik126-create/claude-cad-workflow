@@ -1,0 +1,82 @@
+{
+  "blatt": {"format": "A3", "ausrichtung": "quer"},
+  "schriftfeld": {
+    "eigentuemer": "Musterfirma GmbH",
+    "titel": "Lagerplatte",
+    "untertitel": "Zentrierung ⌀20",
+    "zeichnungsnummer": "MF-1002-01",
+    "index": "–",
+    "werkstoff": "EN AW-6082 T6\nFlachstab 20×90 EN 755-2",
+    "massstab": "1:1",
+    "masse": "0,36 kg",
+    "erstellt": "N. N.",
+    "datum": "2026-10-18",
+    "status": "Entwurf",
+    "dokumentart": "Fertigungszeichnung",
+    "blatt": "1/1"
+  },
+  "hinweise": [
+    "Tolerierung ISO 8015",
+    "Allgemeintoleranzen ISO 2768-1 – m",
+    "Werkstückkanten ISO 13715: −0,3"
+  ],
+  "oberflaeche_sammel": {"art": "abtragen", "wert": "Ra 3,2", "klammer": ["Ra 1,6"]},
+  "ansichten": [
+    {
+      "name": "Vorderansicht",
+      "ursprung": [60, 170],
+      "massstab": "1:1",
+      "elemente": [
+        {"typ": "rechteck", "p1": [0, 0], "p2": [120, 80]},
+        {"typ": "kreis", "m": [10, 10], "r": 3.3},
+        {"typ": "kreis", "m": [110, 10], "r": 3.3},
+        {"typ": "kreis", "m": [10, 70], "r": 3.3},
+        {"typ": "kreis", "m": [110, 70], "r": 3.3},
+        {"typ": "mittelkreuz", "m": [10, 10], "r": 3.3},
+        {"typ": "mittelkreuz", "m": [110, 10], "r": 3.3},
+        {"typ": "mittelkreuz", "m": [10, 70], "r": 3.3},
+        {"typ": "mittelkreuz", "m": [110, 70], "r": 3.3},
+        {"typ": "kreis", "m": [60, 40], "r": 10},
+        {"typ": "mittelkreuz", "m": [60, 40], "r": 10}
+      ],
+      "masse": [
+        {"typ": "laenge", "richtung": "h", "p1": [0, 80], "p2": [10, 70], "lage": 80, "abstand": 10, "ted": true},
+        {"typ": "laenge", "richtung": "h", "p1": [0, 80], "p2": [60, 40], "lage": 80, "abstand": 18, "ted": true},
+        {"typ": "laenge", "richtung": "h", "p1": [0, 80], "p2": [110, 70], "lage": 80, "abstand": 26, "ted": true},
+        {"typ": "laenge", "richtung": "v", "p1": [120, 0], "p2": [110, 10], "lage": 120, "abstand": 10, "ted": true},
+        {"typ": "laenge", "richtung": "v", "p1": [120, 0], "p2": [60, 40], "lage": 120, "abstand": 18, "ted": true},
+        {"typ": "laenge", "richtung": "v", "p1": [120, 0], "p2": [110, 70], "lage": 120, "abstand": 26, "ted": true},
+        {"typ": "laenge", "richtung": "h", "p1": [0, 0], "p2": [120, 0], "lage": 0, "abstand": -22},
+        {"typ": "laenge", "richtung": "v", "p1": [0, 0], "p2": [0, 80], "lage": 0, "abstand": -24},
+
+        {"typ": "durchmesser", "m": [60, 40], "r": 10, "winkel": 135, "tol": "H7",
+         "rahmen": [["position", "⌀0,02", "A", "B", "C"]]},
+        {"typ": "hinweis", "ziel": [112.33, 72.33], "versatz": [40, 40], "text": "4× ⌀6,6",
+         "rahmen": [["position", "⌀0,2 Ⓜ", "A", "B", "C"]]},
+
+        {"typ": "bezug", "buchstabe": "B", "ziel": [0, 55], "richtung": 180},
+        {"typ": "bezug", "buchstabe": "C", "ziel": [95, 0], "richtung": 270},
+        {"typ": "schnittlinie", "p": [[60, -8], [60, 88]], "name": "A", "blick": 0}
+      ]
+    },
+    {
+      "name": "Schnitt A–A",
+      "ursprung": [262, 170],
+      "massstab": "1:1",
+      "titel": "A–A",
+      "elemente": [
+        {"typ": "rechteck", "p1": [0, 0], "p2": [15, 30]},
+        {"typ": "rechteck", "p1": [0, 50], "p2": [15, 80]},
+        {"typ": "schraffur", "p": [[0, 0], [15, 0], [15, 30], [0, 30]]},
+        {"typ": "schraffur", "p": [[0, 50], [15, 50], [15, 80], [0, 80]]},
+        {"typ": "mittellinie", "p": [[0, 40], [15, 40]]}
+      ],
+      "masse": [
+        {"typ": "laenge", "richtung": "h", "p1": [0, 0], "p2": [15, 0], "lage": 0, "abstand": -12},
+        {"typ": "bezug", "buchstabe": "A", "ziel": [0, 15], "richtung": 180},
+        {"typ": "rahmen", "ziel": [0, 70], "knick": [[-6, 0]], "versatz": [-6, 16], "zellen": ["ebenheit", "0,03"]},
+        {"typ": "oberflaeche", "ziel": [9, 30], "hinweis": [24, 12], "text": "Ra 1,6"}
+      ]
+    }
+  ]
+}
