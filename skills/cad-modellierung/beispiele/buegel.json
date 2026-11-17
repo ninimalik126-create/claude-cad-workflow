@@ -1,0 +1,9 @@
+{"name": "Buegel", "werkstoff": "1.4301",
+ "features": [
+  {"id": "Rohr", "typ": "zug", "profil": [{"kreis": 8, "mitte": [0, 0]}],
+   "pfad": {"ebene": "XZ", "linie": [[0, 0], [0, 30], {"bis": [10, 40], "r": 10}, [50, 40], {"bis": [60, 30], "r": 10}, [60, 0]]}},
+  {"id": "Fuesse", "typ": "block", "profil": [{"kreis": 20, "mitte": [[0, 0], [60, 0]]}], "hoehe": 3},
+  {"id": "Rahmen", "typ": "zug", "ecken": "scharf", "profil": [{"rechteck": [2, 2], "mitte": [0, 1]}],
+   "pfad": {"ebene": "XY", "versatz": 3, "geschlossen": true, "linie": [[-6, -6], [6, -6], [6, 6], [-6, 6]]}}
+ ],
+ "soll": {"huelle": [-10, -10, 0, 70, 10, 44]}}

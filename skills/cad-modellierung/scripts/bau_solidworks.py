@@ -336,6 +336,12 @@ class Bau:
             self.fehler += 1
             self.log.append({"id": f.get("id", "?"), "ok": False, "fehler": "; ".join(ex.befunde)})
             return None
+        grund = bp.nur_freecad(f)
+        if grund:  # sauber melden statt mit einer COM-Fehlermeldung zu scheitern
+            self.fehler += 1
+            self.log.append({"id": f["id"], "typ": f["typ"], "ok": False,
+                             "fehler": grund + " – dort bauen und die STEP-Datei in SolidWorks öffnen"})
+            return None
         v0 = self.volumen()
         letztes = self._letztes()
         try:
@@ -355,6 +361,8 @@ class Bau:
         e = {"id": f["id"], "typ": f["typ"], "ok": True, "volumen": round(v1, 3), "delta": round(v1 - v0, 3)}
         if f.get("_anzahl"):
             e["kanten"] = f["_anzahl"]
+        if f.get("spitze"):
+            e["warnung"] = "Bohrspitze wird in SolidWorks nicht gebaut (flacher Grund) – Volumen weicht von FreeCAD ab"
         erwartung = {"block": 1, "drehteil": 1, "tasche": -1, "drehnut": -1, "bohrung": -1, "schale": -1}.get(f["typ"])
         if erwartung and (v1 - v0) * erwartung <= 1e-6:
             e.update(ok=False, fehler="Feature ändert das Volumen nicht in die erwartete Richtung "
@@ -435,10 +443,13 @@ class Bau:
         rho = bp.dichte(self.plan)
         if rho:
             b["masse_kg"] = round(b["volumen_mm3"] * rho / 1e6, 4)
-        abw = bp.soll_vergleich(self.plan, huelle, b["volumen_mm3"])
-        if abw:
-            b["fehler"] += len(abw)
-            b["soll_abweichungen"] = abw
+        if self.fehler:  # Hülle eines halb gebauten Teils sagt nichts aus
+            b.setdefault("warnungen", []).append("Soll-Vergleich übersprungen, weil Features fehlgeschlagen sind")
+        else:
+            abw = bp.soll_vergleich(self.plan, huelle, b["volumen_mm3"])
+            if abw:
+                b["fehler"] += len(abw)
+                b["soll_abweichungen"] = abw
         cpm = self.ext.CustomPropertyManager("")
         for k, v in (("Benennung", self.plan["name"]), ("Werkstoff", self.plan.get("werkstoff"))):
             if v:
@@ -489,7 +500,9 @@ def bauen(auftrag):
     bericht = {"cad": "solidworks", "fehler": 1, "features": []}
     bau = None
     try:
-        plan = bp.laden(auftrag["plan"], skript=bool(auftrag.get("skript")))
+        plan = bp.laden(auftrag["plan"], skript=bool(auftrag.get("skript")), parameter=auftrag.get("parameter"))
+        if auftrag.get("name"):
+            plan["name"] = auftrag["name"]
         bau = Bau(plan, auftrag)
         bau.bauen()
         if auftrag.get("skript") and not bau.fehler:

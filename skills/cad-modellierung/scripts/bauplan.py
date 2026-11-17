@@ -5,10 +5,15 @@ Format: references/bauplan.md
 
 laden(pfad)       -> geprüfter, normalisierter Plan (dict) oder BauplanFehler mit allen Befunden
 schleifen(feat)   -> geschlossene Konturen in (u, v): [("linie", p, q) | ("bogen", p, m, q) | ("kreis", c, r)]
+rahmen(ebene, versatz) -> Ursprung, u, v, Plus-Richtung einer Skizzenebene (auch geneigt)
+ausdruck(text, werte)  -> rechnet "L/2-rand" mit den Parametern des Plans
 waehle_kanten / waehle_flaechen -> neutrale Auswahl auf Geometriedaten der Bauskripte
 """
+import ast
 import json
 import math
+import operator
+import os
 
 EBENEN = {
     # u-Achse, v-Achse, Plus-Richtung (Normale des Plans). Versatz liegt auf der Plus-Achse.
@@ -19,7 +24,12 @@ EBENEN = {
 ACHSEN = {"X": (1, 0, 0), "Y": (0, 1, 0), "Z": (0, 0, 1)}
 TYPEN_PLUS = {"block", "drehteil"}
 TYPEN_MINUS = {"tasche", "drehnut", "bohrung"}
-TYPEN = TYPEN_PLUS | TYPEN_MINUS | {"fase", "verrundung", "schale", "frei"}
+# Diese Typen baut bisher nur FreeCAD (SolidWorks meldet sie als nicht unterstützt)
+NUR_FREECAD = {"muster", "spiegeln", "loft", "zug", "text", "import"}
+TYPEN = TYPEN_PLUS | TYPEN_MINUS | {"fase", "verrundung", "schale", "frei"} | NUR_FREECAD
+# Features mit eigener Skizze: nur sie lassen sich als Muster wiederholen oder spiegeln
+SKIZZENTYPEN = {"block", "tasche", "bohrung", "drehteil", "drehnut", "loft", "zug", "text"}
+FERTIGUNG = {"fdm", "sla", "fraesen", "drehen"}
 
 # ISO 261 Regelgewinde: Nenndurchmesser -> Steigung
 REGELGEWINDE = {1.6: 0.35, 2: 0.4, 2.5: 0.45, 3: 0.5, 3.5: 0.6, 4: 0.7, 5: 0.8, 6: 1.0, 8: 1.25, 10: 1.5,
@@ -28,6 +38,10 @@ REGELGEWINDE = {1.6: 0.35, 2: 0.4, 2.5: 0.45, 3: 0.5, 3.5: 0.6, 4: 0.7, 5: 0.8, 
 # ISO 273 Durchgangsbohrung, Reihe mittel
 DURCHGANG = {1.6: 1.8, 2: 2.4, 2.5: 2.9, 3: 3.4, 4: 4.5, 5: 5.5, 6: 6.6, 8: 9.0, 10: 11.0, 12: 13.5, 14: 15.5,
              16: 17.5, 18: 20.0, 20: 22.0, 22: 24.0, 24: 26.0, 27: 30.0, 30: 33.0, 33: 36.0, 36: 39.0}
+# ISO 4032 Sechskantmutter: Nenndurchmesser -> (Schlüsselweite, Höhe max).
+# DIN 934 weicht ab bei M10 (17), M12 (19), M14 (22).
+MUTTER = {2: (4.0, 1.6), 2.5: (5.0, 2.0), 3: (5.5, 2.4), 4: (7.0, 3.2), 5: (8.0, 4.7), 6: (10.0, 5.2),
+          8: (13.0, 6.8), 10: (16.0, 8.4), 12: (18.0, 10.8), 14: (21.0, 12.8), 16: (24.0, 14.8), 20: (30.0, 18.0)}
 # Dichte g/cm³ für die Massenangabe (Richtwerte)
 DICHTE = {"stahl": 7.85, "s235": 7.85, "s355": 7.85, "c45": 7.85, "42crmo4": 7.85, "edelstahl": 7.9,
           "1.4301": 7.9, "1.4305": 7.9, "1.4404": 8.0, "aluminium": 2.7, "alu": 2.7, "en aw-6082": 2.71,
@@ -60,10 +74,157 @@ def einheit(a):
     return mul(a, 1 / n) if n else a
 
 
+def drehe(a, achse, grad):
+    """Dreht den Vektor a um die globale Achse X, Y oder Z (Rechte-Hand-Regel)."""
+    c, s = math.cos(math.radians(grad)), math.sin(math.radians(grad))
+    x, y, z = a
+    if achse == "X":
+        r = (x, c * y - s * z, s * y + c * z)
+    elif achse == "Y":
+        r = (c * x + s * z, y, -s * x + c * z)
+    else:
+        r = (c * x - s * y, s * x + c * y, z)
+    return tuple(0.0 if abs(k) < 1e-12 else k for k in r)
+
+
+def basis(ebene):
+    """Name der Grundebene: 'XZ' bleibt 'XZ', {"basis": "XZ", …} -> 'XZ'."""
+    return ebene if isinstance(ebene, str) else ebene.get("basis", "XY")
+
+
+def geneigt(ebene):
+    return not isinstance(ebene, str)
+
+
+def rahmen(ebene, versatz=0):
+    """Skizzenebene -> (Ursprung, u, v, Plus-Richtung) im Modell.
+
+    ebene: "XY" | "XZ" | "YZ" oder {"basis": "XY", "ursprung": [x, y, z], "drehen": [["X", 30], …]}.
+    Gedreht wird nacheinander um globale Achsenrichtungen durch den Ursprung der Ebene."""
+    u, v, n = EBENEN[basis(ebene)]
+    o = (0.0, 0.0, 0.0)
+    if geneigt(ebene):
+        for achse, grad in ebene.get("drehen", []):
+            a = str(achse).upper()
+            u, v, n = drehe(u, a, grad), drehe(v, a, grad), drehe(n, a, grad)
+        o = tuple(float(x) for x in ebene.get("ursprung", o))
+    return add(o, mul(n, versatz)), u, v, n
+
+
 def modellpunkt(ebene, versatz, uv):
     """(u, v) in der Planebene -> 3D-Punkt im Modell (mm)."""
-    u, v, n = EBENEN[ebene]
-    return add(add(mul(u, uv[0]), mul(v, uv[1])), mul(n, versatz))
+    o, u, v, _ = rahmen(ebene, versatz)
+    return add(o, add(mul(u, uv[0]), mul(v, uv[1])))
+
+
+def _ebene_pruefen(e):
+    """Leere Zeichenkette, wenn die Ebenenangabe gültig ist, sonst der Befund."""
+    if isinstance(e, str):
+        return "" if e in EBENEN else f"ebene '{e}' unbekannt (XY, XZ, YZ)"
+    if not isinstance(e, dict):
+        return "ebene muss 'XY', 'XZ', 'YZ' oder ein Objekt mit 'basis' sein"
+    if e.get("basis", "XY") not in EBENEN:
+        return f"ebene.basis '{e.get('basis')}' unbekannt (XY, XZ, YZ)"
+    if len(e.get("ursprung", [0, 0, 0])) != 3:
+        return "ebene.ursprung braucht [x, y, z]"
+    for d in e.get("drehen", []):
+        if not (isinstance(d, (list, tuple)) and len(d) == 2 and str(d[0]).upper() in ACHSEN):
+            return 'ebene.drehen erwartet eine Liste wie [["X", 30], ["Z", 45]]'
+    return ""
+
+
+# ---------------------------------------------------------------------------- Parameter und Ausdrücke
+_OPS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv,
+        ast.Pow: operator.pow, ast.Mod: operator.mod, ast.FloorDiv: operator.floordiv,
+        ast.USub: operator.neg, ast.UAdd: operator.pos,
+        ast.Lt: operator.lt, ast.LtE: operator.le, ast.Gt: operator.gt, ast.GtE: operator.ge,
+        ast.Eq: operator.eq, ast.NotEq: operator.ne}
+# Winkelfunktionen rechnen in Grad (wie im CAD üblich)
+_FUNKT = {"sin": lambda g: math.sin(math.radians(g)), "cos": lambda g: math.cos(math.radians(g)),
+          "tan": lambda g: math.tan(math.radians(g)), "asin": lambda x: math.degrees(math.asin(x)),
+          "acos": lambda x: math.degrees(math.acos(x)), "atan": lambda x: math.degrees(math.atan(x)),
+          "atan2": lambda y, x: math.degrees(math.atan2(y, x)), "sqrt": math.sqrt, "abs": abs, "min": min,
+          "max": max, "round": round, "floor": math.floor, "ceil": math.ceil}
+_KONST = {"pi": math.pi}
+
+
+def ausdruck(text, werte):
+    """Rechnet 'L/2 - rand' oder 'd*cos(30)' mit den Parametern in werte.
+
+    Erlaubt: Zahlen, Parameter, + - * / ** % //, Vergleiche, 'a if b else c' und die Funktionen in _FUNKT."""
+    def ev(n):
+        if isinstance(n, ast.Constant) and isinstance(n.value, (int, float)) and not isinstance(n.value, bool):
+            return n.value
+        if isinstance(n, ast.Name):
+            if n.id in werte:
+                return werte[n.id]
+            if n.id in _KONST:
+                return _KONST[n.id]
+            raise ValueError(f"'{n.id}' ist kein Parameter")
+        if isinstance(n, ast.BinOp) and type(n.op) in _OPS:
+            return _OPS[type(n.op)](ev(n.left), ev(n.right))
+        if isinstance(n, ast.UnaryOp) and type(n.op) in _OPS:
+            return _OPS[type(n.op)](ev(n.operand))
+        if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in _FUNKT and not n.keywords:
+            return _FUNKT[n.func.id](*[ev(a) for a in n.args])
+        if isinstance(n, ast.Compare) and len(n.ops) == 1 and type(n.ops[0]) in _OPS:
+            return _OPS[type(n.ops[0])](ev(n.left), ev(n.comparators[0]))
+        if isinstance(n, ast.IfExp):
+            return ev(n.body) if ev(n.test) else ev(n.orelse)
+        raise ValueError("nicht erlaubter Ausdruck")
+    try:
+        w = ev(ast.parse(str(text).strip(), mode="eval").body)
+    except SyntaxError:
+        raise ValueError("Schreibfehler im Ausdruck")
+    except ZeroDivisionError:
+        raise ValueError("Division durch 0")
+    except (TypeError, OverflowError) as ex:
+        raise ValueError(str(ex))
+    if isinstance(w, bool):
+        return w
+    w = float(w)
+    return int(w) if w.is_integer() and abs(w) < 1e15 else w
+
+
+def parameter_aufloesen(plan, ueberschreiben=None):
+    """Ersetzt im ganzen Plan Zeichenketten der Form "=Ausdruck" durch Zahlen.
+
+    plan["parameter"]: {"L": 80, "t": "=L/8"} – spätere dürfen frühere verwenden.
+    ueberschreiben: {"L": 100} ändert Parameter nur für diesen Lauf (Varianten ohne Planänderung).
+    Gibt die Befunde zurück; die aufgelösten Werte stehen danach in plan["_parameter"]."""
+    bef, werte = [], {}
+    roh = dict(plan.get("parameter") or {})
+    for k, v in (ueberschreiben or {}).items():
+        if k not in roh:
+            bef.append(f"Parameter '{k}' gibt es im Plan nicht (vorhanden: {', '.join(roh) or 'keine'})")
+        roh[k] = v
+    for k, v in roh.items():
+        try:
+            if isinstance(v, str):
+                v = ausdruck(v.lstrip("="), werte)
+            if isinstance(v, bool) or not isinstance(v, (int, float)):
+                raise ValueError("muss eine Zahl sein")
+            werte[k] = v
+        except ValueError as ex:
+            bef.append(f"Parameter '{k}': {ex}")
+
+    def geh(x, wo):
+        if isinstance(x, dict):
+            for k in list(x):
+                if k not in ("freecad", "solidworks", "parameter"):
+                    x[k] = geh(x[k], f"{wo}.{k}" if wo else k)
+            return x
+        if isinstance(x, list):
+            return [geh(e, f"{wo}[{i}]") for i, e in enumerate(x)]
+        if isinstance(x, str) and x.startswith("="):
+            try:
+                return ausdruck(x[1:], werte)
+            except ValueError as ex:
+                bef.append(f"{wo}: '{x}' – {ex}")
+        return x
+    geh(plan, "")
+    plan["_parameter"] = werte
+    return bef
 
 
 # ---------------------------------------------------------------------------- Gewinde
@@ -190,6 +351,51 @@ def _kontur(elemente):
     return segs
 
 
+def linienzug(elemente, geschlossen=False):
+    """Pfad aus Punkten und Bögen (Schreibweise wie 'kontur'), bleibt offen, außer geschlossen=True."""
+    if not isinstance(elemente, list) or len(elemente) < 2:
+        raise ValueError("Pfad braucht mindestens 2 Punkte")
+    if isinstance(elemente[0], dict):
+        raise ValueError("Pfad muss mit einem Punkt [u, v] beginnen")
+    start = tuple(elemente[0])
+    segs, p = [], start
+    for el in list(elemente[1:]) + ([list(start)] if geschlossen else []):
+        if isinstance(el, dict):
+            q = tuple(el["bis"])
+            if "durch" in el:
+                m = tuple(el["durch"])
+            elif "r" in el:
+                m = _bogen_r(p, q, float(el["r"]), el.get("gross", False))
+            else:
+                raise ValueError(f"Bogen {el} braucht 'durch' oder 'r'")
+            segs.append(("bogen", p, m, q))
+        else:
+            q = tuple(el)
+            if laenge(sub(q, p)) < 1e-9:
+                continue
+            segs.append(("linie", p, q))
+        p = q
+    if not segs:
+        raise ValueError("Pfad hat keine Länge")
+    return segs
+
+
+def pfad_start(segs):
+    """Startpunkt und Starttangente (Einheitsvektor) eines Linienzugs in (u, v)."""
+    s = segs[0]
+    if s[0] == "linie":
+        return s[1], einheit(sub(s[2], s[1]))
+    p, m, q = s[1], s[2], s[3]  # Bogen durch drei Punkte: Tangente steht senkrecht auf dem Radius im Startpunkt
+    a, b = sub(m, p), sub(q, p)
+    d = 2 * (a[0] * b[1] - a[1] * b[0])
+    if abs(d) < 1e-12:
+        return p, einheit(b)
+    cx = (b[1] * dot(a, a) - a[1] * dot(b, b)) / d
+    cy = (a[0] * dot(b, b) - b[0] * dot(a, a)) / d
+    t = einheit((-cy, cx))
+    return p, (t if dot(t, a) > 0 else mul(t, -1))
+
+
 def positionen(spec):
     """'mitte' als Punkt, Punktliste oder Muster -> Liste von (u, v)."""
     m = spec.get("muster")
@@ -227,6 +433,11 @@ def form_zu_schleifen(f):
         return [_langloch(l, b, p, w) for p in positionen(f)]
     if "vieleck" in f:
         return [_vieleck(int(f["vieleck"]), p, f.get("sw"), f.get("d"), w) for p in positionen(f)]
+    if "mutter" in f:  # Sechskant für eine Mutter ISO 4032; 'spiel' wird auf die Schlüsselweite addiert
+        d, _, _ = gewinde(f["mutter"])
+        if d not in MUTTER:
+            raise ValueError(f"keine Mutter M{d:g} hinterlegt – 'vieleck': 6 mit 'sw' angeben")
+        return [_vieleck(6, p, MUTTER[d][0] + f.get("spiel", 0), None, w) for p in positionen(f)]
     if "kontur" in f:
         return [_kontur(f["kontur"])]
     raise ValueError(f"Profilelement {json.dumps(f, ensure_ascii=False)} unbekannt")
@@ -262,9 +473,17 @@ def pruefen(plan, skript=False):
     if not feats and not skript:
         bef.append("Plan: 'features' fehlt oder leer")
         return bef
-    if feats and not skript and feats[0].get("typ") not in TYPEN_PLUS | {"frei"}:
-        bef.append("Feature 1: Das erste Feature muss Material aufbauen (block, drehteil oder frei)")
-    ids = set()
+    einzeln_modus = bool(plan.get("_einzeln"))
+    if feats and not skript:
+        f0 = feats[0]
+        baut_auf = (f0.get("typ") in TYPEN_PLUS | {"frei", "import"}
+                    or (f0.get("typ") in ("loft", "zug") and not f0.get("abziehen")))
+        if not baut_auf:
+            bef.append("Feature 1: Das erste Feature muss Material aufbauen "
+                       "(block, drehteil, loft, zug, import oder frei)")
+    if plan.get("fertigung") and str(plan["fertigung"]).lower() not in FERTIGUNG:
+        bef.append(f"fertigung '{plan['fertigung']}' unbekannt ({', '.join(sorted(FERTIGUNG))})")
+    ids, typ_von = set(), {}
     for i, f in enumerate(feats, 1):
         t = f.get("typ")
         wo = f"Feature {i} ({f.get('id') or t})"
@@ -273,13 +492,15 @@ def pruefen(plan, skript=False):
         if f["id"] in ids:
             bef.append(f"{wo}: id '{f['id']}' doppelt")
         ids.add(f["id"])
+        typ_von[f["id"]] = t
         if t not in TYPEN:
             bef.append(f"{wo}: Typ '{t}' unbekannt – erlaubt: {', '.join(sorted(TYPEN))}")
             continue
-        if t in ("block", "tasche", "bohrung", "drehteil", "drehnut"):
+        if t in ("block", "tasche", "bohrung", "drehteil", "drehnut", "text"):
             e = f.setdefault("ebene", "XY")
-            if e not in EBENEN:
-                bef.append(f"{wo}: ebene '{e}' unbekannt (XY, XZ, YZ)")
+            b = _ebene_pruefen(e)
+            if b:
+                bef.append(f"{wo}: {b}")
                 continue
             f.setdefault("versatz", 0)
         if t in ("block", "tasche"):
@@ -290,6 +511,10 @@ def pruefen(plan, skript=False):
                 bef.append(f"{wo}: 'hoehe' fehlt")
             if t == "tasche" and not (f.get("tiefe") or f.get("durch")):
                 bef.append(f"{wo}: 'tiefe' oder 'durch': true fehlt")
+            if f.get("schraege") and not -60 < f["schraege"] < 60:
+                bef.append(f"{wo}: 'schraege' in Grad zwischen −60 und 60")
+            if f.get("schraege") and f["richtung"] == "beide":
+                bef.append(f"{wo}: 'schraege' geht nicht zusammen mit richtung 'beide'")
             try:
                 sch = schleifen(f)
                 if not sch:
@@ -299,9 +524,9 @@ def pruefen(plan, skript=False):
                 bef.append(f"{wo}: Profil – {ex}")
         elif t in ("drehteil", "drehnut"):
             a = f.get("achse")
-            u, v, _ = EBENEN[f["ebene"]]
+            u, v, _ = EBENEN[basis(f["ebene"])]
             if a not in ACHSEN or ACHSEN[a] not in (u, v):
-                bef.append(f"{wo}: achse '{a}' muss in der Ebene {f['ebene']} liegen")
+                bef.append(f"{wo}: achse '{a}' muss in der Ebene {basis(f['ebene'])} liegen")
             if f["versatz"]:
                 bef.append(f"{wo}: Drehteile werden in der Grundebene skizziert (versatz 0)")
             f.setdefault("winkel", 360)
@@ -350,6 +575,114 @@ def pruefen(plan, skript=False):
             s = f.get("flachsenkung")
             if s and (s.get("d", 0) <= f.get("d", 0) or not s.get("tiefe")):
                 bef.append(f"{wo}: flachsenkung braucht 'd' (> Bohrung) und 'tiefe'")
+            if f.get("spitze") is True:
+                f["spitze"] = 118
+            if f.get("spitze") and (f.get("durch") or not 60 <= f["spitze"] < 180):
+                bef.append(f"{wo}: 'spitze' (Spitzenwinkel 60…179°, üblich 118) nur bei Sacklöchern mit 'tiefe'")
+            if f.get("gewinde_modelliert") and not f.get("gewinde"):
+                bef.append(f"{wo}: 'gewinde_modelliert' braucht 'gewinde'")
+        elif t in ("muster", "spiegeln"):
+            von = f.get("von")
+            if von is None:
+                von = [feats[i - 2]["id"]] if i > 1 else []
+            f["von"] = von = [von] if isinstance(von, str) else list(von)
+            if not von and not einzeln_modus:
+                bef.append(f"{wo}: 'von' fehlt (IDs der Features, die wiederholt werden)")
+            for v in von:
+                if einzeln_modus:
+                    continue
+                if v == f["id"] or v not in typ_von:
+                    bef.append(f"{wo}: 'von' nennt '{v}' – dieses Feature steht nicht weiter oben im Plan")
+                elif typ_von[v] not in SKIZZENTYPEN:
+                    bef.append(f"{wo}: '{v}' ist ein {typ_von[v]}-Feature und lässt sich nicht wiederholen "
+                               f"(möglich: {', '.join(sorted(SKIZZENTYPEN))})")
+            if t == "spiegeln":
+                if f.setdefault("ebene", "YZ") not in EBENEN:
+                    bef.append(f"{wo}: ebene muss XY, XZ oder YZ sein (Lage über 'versatz')")
+                f.setdefault("versatz", 0)
+            else:
+                li, kr = f.get("linear"), f.get("kreis")
+                if bool(li) == bool(kr):
+                    bef.append(f"{wo}: genau eines von 'linear' oder 'kreis' angeben")
+                for m in ([li] if isinstance(li, dict) else li or []):
+                    if str(m.get("richtung", "")).lstrip("+-").upper() not in ACHSEN:
+                        bef.append(f"{wo}: linear.richtung muss X, Y, Z (oder −X …) sein")
+                    if not isinstance(m.get("anzahl"), int) or m["anzahl"] < 2 or not m.get("abstand"):
+                        bef.append(f"{wo}: linear braucht 'anzahl' (≥ 2, einschließlich Original) und 'abstand'")
+                if isinstance(li, list) and len(li) > 2:
+                    bef.append(f"{wo}: linear nimmt höchstens zwei Richtungen")
+                if kr:
+                    if str(kr.get("achse", "")).upper() not in ACHSEN:
+                        bef.append(f"{wo}: kreis.achse muss X, Y oder Z sein")
+                    if not isinstance(kr.get("anzahl"), int) or kr["anzahl"] < 2:
+                        bef.append(f"{wo}: kreis braucht 'anzahl' (≥ 2, einschließlich Original)")
+                    if len(kr.get("durch", [0, 0, 0])) != 3:
+                        bef.append(f"{wo}: kreis.durch braucht [x, y, z] (Punkt auf der Drehachse)")
+        elif t == "loft":
+            sn = f.get("schnitte")
+            if not isinstance(sn, list) or len(sn) < 2:
+                bef.append(f"{wo}: 'schnitte' braucht mindestens zwei Querschnitte")
+                continue
+            for k, s in enumerate(sn, 1):
+                b = _ebene_pruefen(s.setdefault("ebene", "XY"))
+                s.setdefault("versatz", 0)
+                try:
+                    s["_schleifen"] = schleifen(s)
+                    if len(s["_schleifen"]) != 1:
+                        b = b or "jeder Schnitt braucht genau eine geschlossene Kontur"
+                except (ValueError, KeyError, TypeError) as ex:
+                    b = b or f"Profil – {ex}"
+                if b:
+                    bef.append(f"{wo}, Schnitt {k}: {b}")
+        elif t == "zug":
+            try:
+                f["_schleifen"] = schleifen(f)
+                if not f["_schleifen"]:
+                    bef.append(f"{wo}: 'profil' fehlt")
+            except (ValueError, KeyError, TypeError) as ex:
+                bef.append(f"{wo}: Profil – {ex}")
+            pf = f.get("pfad")
+            if not isinstance(pf, dict) or not pf.get("linie"):
+                bef.append(f"{wo}: 'pfad' braucht 'linie' (Punkte und Bögen wie bei 'kontur')")
+            else:
+                b = _ebene_pruefen(pf.setdefault("ebene", "XY"))
+                pf.setdefault("versatz", 0)
+                if b:
+                    bef.append(f"{wo}: pfad.{b}")
+                try:
+                    f["_pfad"] = linienzug(pf["linie"], bool(pf.get("geschlossen")))
+                except (ValueError, KeyError, TypeError) as ex:
+                    bef.append(f"{wo}: Pfad – {ex}")
+            if f.setdefault("ecken", "scharf") not in ("scharf", "rund"):
+                bef.append(f"{wo}: ecken muss 'scharf' oder 'rund' sein")
+        elif t == "text":
+            if not str(f.get("text", "")).strip():
+                bef.append(f"{wo}: 'text' fehlt")
+            if not f.get("hoehe") or not f.get("tiefe"):
+                bef.append(f"{wo}: 'hoehe' (Schrifthöhe) und 'tiefe' (Gravurtiefe oder Erhebung) fehlen")
+            if f.setdefault("art", "gravur") not in ("gravur", "erhaben"):
+                bef.append(f"{wo}: art muss 'gravur' oder 'erhaben' sein")
+            f.setdefault("richtung", "-" if f["art"] == "gravur" else "+")
+            if f["richtung"] not in ("+", "-"):
+                bef.append(f"{wo}: richtung muss '+' oder '-' sein")
+            if f.setdefault("ausrichtung", "mitte") not in ("mitte", "links", "rechts"):
+                bef.append(f"{wo}: ausrichtung muss 'mitte', 'links' oder 'rechts' sein")
+            if len(f.setdefault("position", [0, 0])) != 2:
+                bef.append(f"{wo}: position braucht [u, v]")
+        elif t == "import":
+            if i != 1:
+                bef.append(f"{wo}: 'import' muss das erste Feature sein")
+            d = str(f.get("datei", ""))
+            pfad = d if os.path.isabs(d) else os.path.join(plan.get("_ordner", ""), d)
+            if not d:
+                bef.append(f"{wo}: 'datei' fehlt (STEP, BREP oder IGES)")
+            elif os.path.splitext(d)[1].lower() not in (".step", ".stp", ".brep", ".brp", ".igs", ".iges"):
+                bef.append(f"{wo}: nur STEP, BREP oder IGES – ein Netz (STL/OBJ/3MF) erst mit "
+                           f"'modell.py netz koerper' in einen Volumenkörper wandeln")
+            elif not os.path.exists(pfad):
+                bef.append(f"{wo}: Datei '{pfad}' nicht gefunden")
+            else:
+                f["_datei"] = os.path.abspath(pfad)
         elif t in ("fase", "verrundung"):
             if not f.get("kanten"):
                 bef.append(f"{wo}: 'kanten' (Auswahl) fehlt")
@@ -381,6 +714,8 @@ def pruefen(plan, skript=False):
                                     f"(innen bleibt r − Wandstärke)")
     if not skript and not plan.get("soll", {}).get("huelle"):
         hinweise.append("soll.huelle fehlt – ohne Soll-Hülle werden Lage- und Richtungsfehler nicht erkannt")
+    if not bef:
+        hinweise.extend(fertigungshinweise(plan))
     soll = plan.get("soll", {})
     h = soll.get("huelle")
     if h is not None and len(h) not in (3, 6):
@@ -388,19 +723,64 @@ def pruefen(plan, skript=False):
     return bef
 
 
+def fertigungshinweise(plan):
+    """Konstruktionshinweise aus dem Plan je nach 'fertigung' (blockieren nicht, sparen aber Fehldrucke)."""
+    art = str(plan.get("fertigung", "")).lower()
+    out = []
+    for f in plan.get("features", []):
+        t, fid = f.get("typ"), f.get("id")
+        if art == "fdm":
+            g = f.get("_gewinde")
+            if g and g["d"] < 6 and not f.get("gewinde_modelliert"):
+                out.append(f"{fid}: {g['name']} lässt sich im FDM-Druck kaum schneiden – besser 'durchgang' mit "
+                           f"Muttertasche ('mutter') oder Gewindeeinsatz")
+            if g and f.get("gewinde_modelliert") and g["d"] < 6:
+                out.append(f"{fid}: modelliertes Gewinde {g['name']} ist für FDM zu fein (ab M6 brauchbar)")
+            if t == "bohrung" and not g and f.get("d", 9) < 2:
+                out.append(f"{fid}: Bohrung Ø{f['d']:g} läuft im FDM-Druck meist zu – ab Ø2 planen")
+            if t == "schale" and f.get("dicke", 9) < 1.2:
+                out.append(f"{fid}: Wandstärke {f['dicke']:g} mm ist für FDM dünn (Richtwert ≥ 1,2 mm)")
+            if t == "text" and (f.get("hoehe", 9) < 4 or f.get("tiefe", 9) < 0.4):
+                out.append(f"{fid}: Schrift unter 4 mm Höhe oder 0,4 mm Tiefe wird im FDM-Druck unleserlich")
+        if art == "fraesen" and t == "tasche" and not f.get("durch"):
+            eckig = [p for p in f.get("profil", []) if ("rechteck" in p and not p.get("r")) or "vieleck" in p
+                     or "mutter" in p]
+            if eckig:
+                out.append(f"{fid}: Tasche mit scharfen Innenecken – fräsbar nur mit Eckenradius "
+                           f"(z. B. 'r' ≥ Fräserradius) oder wenn die Ecken frei auslaufen")
+    return out
+
+
+def nur_freecad(f):
+    """Grund (Text), warum ein Feature nur in FreeCAD gebaut werden kann – sonst None."""
+    t = f.get("typ")
+    if t in NUR_FREECAD:
+        return f"Feature-Typ '{t}' gibt es bisher nur in FreeCAD"
+    if geneigt(f.get("ebene", "XY")):
+        return "geneigte Ebenen (ebene als Objekt) gibt es bisher nur in FreeCAD"
+    for k in ("schraege", "gewinde_modelliert"):
+        if f.get(k):
+            return f"'{k}' gibt es bisher nur in FreeCAD"
+    return None
+
+
 def einzeln(f):
     """Prüft ein einzelnes Feature (für feature() in freien Skripten); wirft BauplanFehler."""
     if not f.get("_geprueft"):
-        bef = [b for b in pruefen({"name": "x", "features": [f]}, skript=True)]
+        bef = [b for b in pruefen({"name": "x", "features": [f], "_einzeln": True}, skript=True)]
         if bef:
             raise BauplanFehler(bef)
     return f
 
 
-def laden(pfad, skript=False):
+def laden(pfad, skript=False, parameter=None):
+    """Liest, rechnet Parameter aus ("=…") und prüft. parameter: {"L": 100} überschreibt für diesen Lauf."""
     with open(pfad, encoding="utf-8") as fh:
         plan = json.load(fh)
-    bef = pruefen(plan, skript)
+    plan["_ordner"] = os.path.dirname(os.path.abspath(pfad))
+    bef = parameter_aufloesen(plan, parameter)
+    if not bef:
+        bef = pruefen(plan, skript)
     if bef:
         raise BauplanFehler(bef)
     return plan
@@ -490,6 +870,65 @@ def tangential_erweitern(kanten, idx, tol=1e-4):
                         offen.append(n["i"])
                         break
     return sorted(gewaehlt)
+
+
+def _werte_kurz(werte, n=8):
+    w = sorted({round(x, 3) + 0.0 for x in werte})
+    return ", ".join(f"{x:g}" for x in w[:n]) + (" …" if len(w) > n else "")
+
+
+def kanten_diagnose(kanten, auswahl, tol=1e-3):
+    """Sagt in einem Satz, warum eine Kantenauswahl nichts trifft und was es stattdessen gibt."""
+    sels = auswahl if isinstance(auswahl, list) else [auswahl]
+    teile = []
+    for sel in sels:
+        if not isinstance(sel, dict):
+            continue
+        rest = {k: v for k, v in sel.items() if k != "nahe"}
+        if any(_kante_passt(k, rest, tol) for k in kanten):
+            continue
+        allein_leer = False
+        for key, wert in rest.items():
+            if any(_kante_passt(k, {key: wert}, tol) for k in kanten):
+                continue
+            allein_leer = True
+            if key == "in_ebene":
+                for ax in wert:
+                    i = "XYZ".index(ax.upper())
+                    da = [k["punkte"][0][i] for k in kanten
+                          if max(p[i] for p in k["punkte"]) - min(p[i] for p in k["punkte"]) < tol]
+                    teile.append(f"keine Kante liegt in {ax.upper()} = {wert[ax]:g}; Kanten gibt es bei "
+                                 f"{ax.upper()} = {_werte_kurz(da)}")
+            elif key == "d":
+                teile.append(f"kein Kreis mit Ø{wert:g}; vorhandene Kreis-Ø: "
+                             f"{_werte_kurz(k['d'] for k in kanten if k['typ'] == 'kreis') or 'keine'}")
+            elif key == "parallel":
+                teile.append(f"keine gerade Kante parallel zu {wert}")
+            elif key == "box":
+                teile.append("keine Kantenmitte liegt in der Box")
+            elif key == "kreis":
+                teile.append("es gibt keine Kreiskanten")
+        if not allein_leer:
+            teile.append("jede Bedingung trifft für sich Kanten, aber keine Kante erfüllt alle zugleich")
+    return "; ".join(teile)
+
+
+def flaechen_diagnose(flaechen, auswahl):
+    """Sagt, welche ebenen Flächen und Zylinder es gibt, wenn eine Flächenauswahl nichts trifft."""
+    sels = auswahl if isinstance(auswahl, list) else [auswahl]
+    teile = []
+    for sel in sels:
+        if not isinstance(sel, dict):
+            continue
+        if "normale" in sel:
+            n = _achse(sel["normale"])
+            i = [abs(x) for x in n].index(1)
+            da = [f["punkt"][i] for f in flaechen if f["typ"] == "ebene" and dot(f["normale"], n) > 1 - 1e-6]
+            teile.append(f"ebene Flächen mit Normale {sel['normale']} liegen bei {_werte_kurz(da) or '– (keine)'}")
+        if "zylinder" in sel:
+            teile.append("vorhandene Zylinder-Ø: "
+                         f"{_werte_kurz(f['d'] for f in flaechen if f['typ'] == 'zylinder') or 'keine'}")
+    return "; ".join(teile)
 
 
 def waehle_flaechen(flaechen, auswahl, tol=1e-3):

@@ -13,6 +13,10 @@ Der Nutzer schreibt, was er hat (Text, Skizze, Foto, Zeichnung, altes Teil). Ers
 
 Ein Foto oder eine Skizze **mit Maßen** ersetzt meist alle Rückfragen. Ein Foto ohne Maße: nach einem Referenzmaß fragen (Messschieber, bekannte Schraube, Lineal im Bild).
 
+Liegt eine Datei vor, ersetzt sie die Maßfragen: einen **Scan oder eine STL** erst mit `modell.py netz pruefen` und `netz schnitte` vermessen (scan-nachbau.md), ein **STEP-Teil**, das geändert werden soll, als `import` in den Plan laden. Dann nur noch fragen, was sich ändern soll und wofür das Teil gebraucht wird.
+
+Die Fertigung wandert als `fertigung` in den Plan (`fdm`, `sla`, `fraesen`, `drehen`); der Bau prüft dann die Richtwerte unten mit.
+
 ## Bei Bedarf (nur fragen, wenn es das Teil wirklich ändert)
 
 | Information | Annahme, wenn nicht genannt |
@@ -31,8 +35,9 @@ Ein Foto oder eine Skizze **mit Maßen** ersetzt meist alle Rückfragen. Ein Fot
 - Bohrungen fallen etwas kleiner aus: +0,2 mm auf den Nenn-Ø
 - Spiel für Steck-/Gleitpassung 0,2–0,3 mm je Seite; Presssitz 0–0,1 mm (am Probedruck prüfen)
 - Überhänge bis 45° ohne Stützen; Unterkanten fasen statt runden
-- Gewinde unter M6 nicht drucken: Durchgangsbohrung + Mutter oder Gewindeeinsatz (Bohrungsmaß laut Hersteller des Einsatzes erfragen)
+- Gewinde unter M6 nicht drucken: Durchgangsbohrung + Muttertasche (Profil `mutter`) oder Gewindeeinsatz (Bohrungsmaß laut Hersteller des Einsatzes erfragen); ab M6 geht `gewinde_modelliert` mit `gewindespiel` 0,3
 - Außenradius > Wandstärke, wenn später ausgehöhlt wird
+- Drucklage mitdenken: Das Teil wird so geprüft, wie es gebaut ist (Z nach oben). Meldet der Bau große Überhänge, das Teil im Plan anders aufbauen oder die Kante fasen
 
 **Fräsen**
 - Innenecken mit Radius ≥ Fräserradius (z. B. r ≥ 3 bei Ø6-Fräser)
@@ -44,8 +49,8 @@ Ein Foto oder eine Skizze **mit Maßen** ersetzt meist alle Rückfragen. Ein Fot
 - Schultern mit Passung: Freistich (DIN 509) oder Radius vorsehen
 - Enden fasen; Zentrierbohrung bei langen Wellen
 
-**Nicht automatisch abbildbar**: Blechteile mit Abwicklung (werden als Volumenteil gebaut), organische Freiformen (Ergonomiegriffe, Karosserie) – dafür Grundkörper liefern und das sagen.
+**Nicht automatisch abbildbar**: Blechteile mit Abwicklung (werden als Volumenteil gebaut), organische Freiformen (Ergonomiegriffe, Karosserie) – dafür Grundkörper liefern oder einen Scan als Volumenkörper wandeln und das sagen.
 
 ## Ergebnis der Infophase
 
-Vor dem Bau eine kurze Liste „So baue ich es“ (5–10 Zeilen): Hauptmaße, Features in Stichworten, getroffene Annahmen. Keine extra Bestätigung abwarten, außer bei großen Unsicherheiten – die Karte mit Programm und Ausgaben (siehe SKILL.md) ist der Bestätigungsschritt.
+Vor dem Bau eine kurze Liste „So baue ich es“ (5–10 Zeilen): Hauptmaße, Features in Stichworten, getroffene Annahmen. Keine extra Bestätigung abwarten, außer bei großen Unsicherheiten – die Karte mit Programm und Ausgaben (siehe SKILL.md) ist der Bestätigungsschritt; sind Vorgaben gesetzt, genügt die Liste.

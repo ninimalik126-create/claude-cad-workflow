@@ -1,0 +1,13 @@
+{"name": "Pruefblock", "werkstoff": "EN AW-6082",
+ "features": [
+  {"id": "Block", "typ": "block", "profil": [{"rechteck": [60, 40], "ecke": [0, 0]}], "hoehe": 20, "schraege": 5},
+  {"id": "Sackloch", "typ": "bohrung", "versatz": 20, "mitte": [15, 20], "d": 8, "tiefe": 10, "spitze": 118},
+  {"id": "Schraegbohrung", "typ": "bohrung", "ebene": {"basis": "XY", "ursprung": [30, 0, 10], "drehen": [["X", 60]]}, "mitte": [0, 0], "d": 5, "tiefe": 12},
+  {"id": "Kerbe", "typ": "tasche", "versatz": 20, "profil": [{"kreis": 3, "mitte": [30, 28]}], "tiefe": 2},
+  {"id": "Kerben", "typ": "muster", "von": "Kerbe", "kreis": {"achse": "Z", "anzahl": 6, "durch": [30, 20, 0]}},
+  {"id": "Nut", "typ": "tasche", "ebene": "XZ", "richtung": "+", "profil": [{"rechteck": [4, 3], "mitte": [8, 10]}], "tiefe": 2},
+  {"id": "Nut2", "typ": "spiegeln", "von": "Nut", "ebene": "YZ", "versatz": 30},
+  {"id": "Gewinde", "typ": "bohrung", "versatz": 20, "mitte": [45, 20], "gewinde": "M8", "durch": true, "gewinde_modelliert": true, "gewindespiel": 0.3}
+ ],
+ "soll": {"huelle": [0, 0, 0, 60, 40, 20]},
+ "ansichten": ["iso", "oben", "vorne", "schnitt:Y=20", "schnitt:X=30", "iso_hinten"]}

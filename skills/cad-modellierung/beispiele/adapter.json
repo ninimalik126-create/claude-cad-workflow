@@ -1,0 +1,17 @@
+{"name": "Adapter", "werkstoff": "PETG", "fertigung": "fdm",
+ "features": [
+  {"id": "Flansch", "typ": "block", "profil": [{"rechteck": [60, 40], "mitte": [0, 0], "r": 5}], "hoehe": 4},
+  {"id": "Uebergang", "typ": "loft", "schnitte": [
+     {"versatz": 4, "profil": [{"rechteck": [50, 30], "mitte": [0, 0], "r": 5}]},
+     {"versatz": 34, "profil": [{"kreis": 25, "mitte": [0, 0]}]}]},
+  {"id": "Stutzen", "typ": "block", "versatz": 34, "profil": [{"kreis": 25, "mitte": [0, 0]}], "hoehe": 15},
+  {"id": "Kanal", "typ": "loft", "abziehen": true, "schnitte": [
+     {"versatz": 0, "profil": [{"rechteck": [44, 24], "mitte": [0, 0], "r": 3}]},
+     {"versatz": 34, "profil": [{"kreis": 21, "mitte": [0, 0]}]}]},
+  {"id": "Bohrung", "typ": "bohrung", "versatz": 49, "mitte": [0, 0], "d": 21, "tiefe": 15},
+  {"id": "Loch", "typ": "bohrung", "versatz": 4, "mitte": [-26, -16], "durchgang": "M3", "durch": true},
+  {"id": "Lochbild", "typ": "muster", "von": "Loch",
+   "linear": [{"richtung": "X", "anzahl": 2, "abstand": 52}, {"richtung": "Y", "anzahl": 2, "abstand": 32}]}
+ ],
+ "soll": {"huelle": [-30, -20, 0, 30, 20, 49]},
+ "ansichten": ["iso", "vorne", "oben", "schnitt:Y=0"]}

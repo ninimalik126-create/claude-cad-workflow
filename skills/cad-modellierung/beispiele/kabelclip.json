@@ -1,0 +1,21 @@
+{
+ "name": "Kabelclip",
+ "werkstoff": "PETG",
+ "fertigung": "fdm",
+ "parameter": {"L": 60, "B": 24, "t": 4, "rand": 8, "dk": 8, "wand": 2.4},
+ "features": [
+  {"id": "Platte", "typ": "block", "profil": [{"rechteck": ["=L", "=B"], "mitte": [0, 0], "r": 3}], "hoehe": "=t"},
+  {"id": "Schraube", "typ": "bohrung", "versatz": "=t", "mitte": ["=-L/2+rand", 0], "durchgang": "M4", "durch": true,
+   "senkung": {"d": 8.4, "winkel": 90}},
+  {"id": "Schraube_rechts", "typ": "spiegeln", "von": "Schraube", "ebene": "YZ"},
+  {"id": "Mutter", "typ": "tasche", "richtung": "+", "profil": [{"mutter": "M4", "spiel": 0.2, "mitte": [0, 0]}], "tiefe": 2},
+  {"id": "Steg", "typ": "block", "ebene": "XZ", "richtung": "beide", "hoehe": 3,
+   "profil": [{"kontur": [[-14, "=t"], [-8, "=t"], [-8, "=t+dk+wand"], [-14, "=t+dk+wand"]]}]},
+  {"id": "Stege", "typ": "muster", "von": "Steg", "linear": {"richtung": "X", "anzahl": 3, "abstand": 11}},
+  {"id": "Kabel", "typ": "bohrung", "ebene": "XZ", "versatz": 5, "mitte": [[-11, "=t+dk/2+0.5"], [0, "=t+dk/2+0.5"], [11, "=t+dk/2+0.5"]],
+   "d": "=dk/2", "durch": true},
+  {"id": "Schrift", "typ": "text", "text": "M4", "versatz": "=t", "position": [0, -8], "hoehe": 5, "tiefe": 0.6},
+  {"id": "Oberkante", "typ": "fase", "kanten": {"in_ebene": {"Z": "=t+dk+wand"}}, "laenge": 0.5}
+ ],
+ "soll": {"huelle": ["=-L/2", "=-B/2", 0, "=L/2", "=B/2", "=t+dk+wand"]}
+}
